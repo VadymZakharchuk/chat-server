@@ -105,8 +105,8 @@ createTempDialog('past_dialog_2', ['user1', 'user2']);
 addTempMessage('past_dialog_2', 'user1', 'Як твої справи?', Date.now() - 30000);
 addTempMessage('past_dialog_2', 'user2', 'Все добре, дякую!', Date.now() - 25000);
 
-createTempDialog('current_dialog_1', ['user1']); // Аліса сама в цьому діалозі поки що
-createTempDialog('current_dialog_2', ['user2']); // Боб сам у цьому діалозі поки що
+createTempDialog('current_dialog_1', ['user1']);
+createTempDialog('current_dialog_2', ['user2']);
 
 const clients = new Map<WebSocket, ClientInfo>();
 
@@ -126,7 +126,9 @@ wss.on('connection', ws => {
           clientInfo.username = parsedMessage.username;
         }
         broadcast({ type: 'system', message: `${parsedMessage.username} приєднався до чату.` }, ws);
-      } else if (parsedMessage.type === 'NEW_MESSAGE' && parsedMessage.payload && parsedMessage.payload.dialogId && parsedMessage.payload.senderId && parsedMessage.payload.content) {
+      } else if (parsedMessage.type === 'NEW_MESSAGE' &&
+        parsedMessage.payload && parsedMessage.payload.dialogId &&
+        parsedMessage.payload.senderId && parsedMessage.payload.content) {
         const dialogId = parsedMessage.payload.dialogId;
         const storedMessage: StoredMessage = {
           type: 'NEW_MESSAGE',
@@ -221,7 +223,6 @@ app.get('/api/dialogs', (req: Request, res: Response) => {
 app.get('/api/profiles/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const user = users.find(u => u.id === id);
-  console.log(user)
   if (user) {
     res.json(user); // Повертаємо об'єкт Profile
   } else {
