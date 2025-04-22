@@ -3,46 +3,11 @@ import type {RequestHandler} from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import cors from 'cors';
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads');
-    // Створюємо директорію uploads, якщо її немає
-    require('fs').mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const fileExtension = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + fileExtension);
-  },
-});
-
-const upload = multer({ storage: storage });
-const uploadImageHandler = (req: Request, res: Response): Response | undefined => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'Будь ласка, завантажте файл зображення.' });
-  }
-  const imageUrl = `/uploads/${(req.file as Express.Multer.File).filename}`;
-  return res.json({ imageUrl });
-};
-
-// Обробник завантаження відео
-const uploadVideoHandler = (req: Request, res: Response): Response | undefined => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'Будь ласка, завантажте відеофайл.' });
-  }
-  const videoUrl = `/uploads/${(req.file as Express.Multer.File).filename}`;
-  return res.json({ videoUrl });
-};
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'
   ], // додайте ваші дозволені origins
@@ -50,14 +15,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Ендпоінт для завантаження зображення
-app.post('/api/upload/image', upload.single('image') as RequestHandler, uploadImageHandler as RequestHandler);
-
-// Ендпоінт для завантаження відео
-app.post('/api/upload/video', upload.single('video') as RequestHandler, uploadVideoHandler as RequestHandler);
 
 interface ClientInfo {
   id: string;
