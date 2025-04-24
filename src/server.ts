@@ -3,6 +3,8 @@ import type {RequestHandler} from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import cors from 'cors';
+import { ClientInfo, DialogItem, Profile, StoredMessage } from "./types/types";
+import {createFakeData} from "./fakeData/fakeData";
 
 const app = express();
 const server = http.createServer(app);
@@ -10,104 +12,13 @@ const wss = new WebSocketServer({ server });
 
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'
-  ], // додайте ваші дозволені origins
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
-interface ClientInfo {
-  id: string;
-  username?: string;
-}
-
-interface MessagePayload {
-  id: string;
-  dialogId: string;
-  senderId: string;
-  createdAt: number;
-  type: 'text' | 'image' | 'video';
-  content?: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  thumbnailUrl?: string;
-  duration?: number;
-}
-
-interface StoredMessage {
-  type: 'NEW_MESSAGE';
-  payload: MessagePayload;
-}
-
-interface DialogItem {
-  id: string;
-  participantIds: string[];
-  lastMessage?: StoredMessage;
-  updatedAt: number;
-}
-
-interface Profile {
-  id: string;
-  name: string;
-  avatar: string;
-}
-
-// Тимчасове зберігання діалогів у пам'яті
-const dialogs = new Map<string, DialogItem>();
-
-// Тимчасове зберігання повідомлень у пам'яті
-const dialogMessages = new Map<string, StoredMessage[]>();
-
-// Тестові користувачі
-const users: Profile[] = [
-  { id: 'user1', name: 'Alice', avatar: 'https://i.pravatar.cc/150?u=bob' },
-  { id: 'user2', name: 'Bob', avatar: 'https://i.pravatar.cc/150?u=alice' },
-];
-
-// Функція для створення тимчасових діалогів
-function createTempDialog(id: string, participantIds: string[]) {
-  dialogs.set(id, {
-    id,
-    participantIds,
-    lastMessage: undefined,
-    updatedAt: Date.now(),
-  });
-}
-
-// Функція для додавання тестових повідомлень
-function addTempMessage(dialogId: string, senderId: string, content: string, createdAt: number) {
-  const message: StoredMessage = {
-    type: 'NEW_MESSAGE',
-    payload: {
-      id: generateUniqueId(),
-      dialogId: dialogId,
-      senderId: senderId,
-      createdAt: createdAt,
-      type: 'text',
-      content: content,
-    },
-  };
-  const messages = dialogMessages.get(dialogId) || [];
-  messages.push(message);
-  dialogMessages.set(dialogId, messages);
-  const dialog = dialogs.get(dialogId);
-  if (dialog) {
-    dialog.lastMessage = message;
-    dialog.updatedAt = createdAt;
-  }
-}
-
-// Створення тестових діалогів та повідомлень при запуску сервера
-createTempDialog('past_dialog_1', ['user1', 'user2']);
-addTempMessage('past_dialog_1', 'user1', 'Привіт, Боб!', Date.now() - 60000);
-addTempMessage('past_dialog_1', 'user2', 'Привіт, Алісо!', Date.now() - 55000);
-
-createTempDialog('past_dialog_2', ['user1', 'user2']);
-addTempMessage('past_dialog_2', 'user1', 'Як твої справи?', Date.now() - 30000);
-addTempMessage('past_dialog_2', 'user2', 'Все добре, дякую!', Date.now() - 25000);
-
-createTempDialog('current_dialog_1', ['user1']);
-createTempDialog('current_dialog_2', ['user2']);
+const { users, dialogs, dialogMessages } = createFakeData()
 
 const clients = new Map<WebSocket, ClientInfo>();
 
