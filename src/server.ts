@@ -1,10 +1,11 @@
-import express, {NextFunction, Request, Response} from 'express';
-import type {RequestHandler} from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import cors from 'cors';
 import { ClientInfo, DialogItem, Profile, StoredMessage } from "./types/types";
-import {createFakeData} from "./fakeData/fakeData";
+import { createFakeData } from "./fakeData/fakeData";
+import dialogsRoutes from './routes/dialogs.routes';
+import profilesRoutes from './routes/profiles.routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -18,7 +19,7 @@ app.use(cors({
   credentials: true
 }));
 
-const { users, dialogs, dialogMessages } = createFakeData()
+const { users, dialogs, dialogMessages } = createFakeData();
 
 const clients = new Map<WebSocket, ClientInfo>();
 
@@ -95,53 +96,9 @@ function generateUniqueId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
-// Ендпоінт для отримання історії повідомлень діалогу
-app.get('/api/dialogs/:dialogId/messages', (req: Request, res: Response) => {
-  const { dialogId } = req.params;
-  const messages = dialogMessages.get(dialogId) || [];
-  res.json({
-    items: messages,
-    total: messages.length,
-    offset: 0,
-    hasMore: false,
-  });
-});
-
-// Ендпоінт для отримання списку діалогів
-app.get('/api/dialogs', (req: Request, res: Response) => {
-  const { offset = 0, limit = 10, participantId } = req.query;
-  const offsetNum = parseInt(offset as string, 10) || 0;
-  const limitNum = Math.min(parseInt(limit as string, 10) || 10, 50);
-
-  let filteredDialogs = Array.from(dialogs.values());
-
-  if (participantId) {
-    filteredDialogs = filteredDialogs.filter(dialog => dialog.participantIds.includes(participantId as string));
-  }
-
-  const total = filteredDialogs.length;
-  const items = filteredDialogs.slice(offsetNum, offsetNum + limitNum);
-  const hasMore = offsetNum + limitNum < total;
-
-  res.json({
-    items,
-    total,
-    offset: offsetNum,
-    hasMore,
-  });
-});
-
-// Ендпоінт для отримання профілю користувача
-app.get('/api/profiles/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const user = users.find(u => u.id === id);
-  if (user) {
-    res.json(user); // Повертаємо об'єкт Profile
-  } else {
-    res.status(404).json({ message: 'Користувача не знайдено' });
-  }
-});
-
+// Підключаємо роутери
+app.use('/api/dialogs', dialogsRoutes);
+app.use('/api/profiles', profilesRoutes);
 
 const PORT = 3000;
 
