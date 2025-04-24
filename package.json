@@ -13,14 +13,17 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "multer": "^1.4.5-lts.2",
+    "express-fileupload": "^1.5.1",
+    "mongoose": "^8.13.2",
     "src": "^1.1.2",
     "ws": "^8.18.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/express-fileupload": "^1.5.1",
     "@types/multer": "^1.4.7",
     "@types/ws": "^8.18.1",
     "nodemon": "^3.1.9",

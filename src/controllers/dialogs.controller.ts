@@ -1,38 +1,58 @@
 import { Request, Response } from 'express';
-import { createFakeData } from "../fakeData/fakeData"
+import Message from '../models/Message';
+import Dialog from '../models/Dialog';
 
-export const getDialogMessages = (req: Request, res: Response) => {
+export const getDialogMessages = async (req: Request, res: Response) => {
   const { dialogId } = req.params;
-  const { dialogMessages } = createFakeData()
-  const messages = dialogMessages.get(dialogId) || [];
-  res.json({
-    items: messages,
-    total: messages.length,
-    offset: 0,
-    hasMore: false,
-  });
+  const { offset = 0, limit = 20 } = req.query;
+  const offsetNum = parseInt(offset as string, 10) || 0;
+  const limitNum = Math.min(parseInt(limit as string, 10) || 20, 100);
+
+  try {
+    const messages = await Message.find({ 'payload.dialogId': dialogId })
+      .sort({ 'payload.createdAt': -1 }) // Сортуємо від нових до старих
+      .skip(offsetNum)
+      .limit(limitNum);
+
+    const total = await Message.countDocuments({ 'payload.dialogId': dialogId });
+    const hasMore = offsetNum + limitNum < total;
+
+    res.json({
+      items: messages.reverse(), // Повертаємо у хронологічному порядку
+      total,
+      offset: offsetNum,
+      hasMore,
+    });
+  } catch (error: any) {
+    console.error('Помилка отримання повідомлень діалогу:', error);
+    res.status(500).json({ message: 'Не вдалося отримати повідомлення діалогу' });
+  }
 };
 
-export const getDialogs = (req: Request, res: Response) => {
-  const { dialogs } = createFakeData()
+export const getDialogs = async (req: Request, res: Response) => {
   const { offset = 0, limit = 10, participantId } = req.query;
   const offsetNum = parseInt(offset as string, 10) || 0;
   const limitNum = Math.min(parseInt(limit as string, 10) || 10, 50);
 
-  let filteredDialogs = Array.from(dialogs.values());
+  const query = participantId ? { participantIds: participantId } : {};
 
-  if (participantId) {
-    filteredDialogs = filteredDialogs.filter(dialog => dialog.participantIds.includes(participantId as string));
+  try {
+    const dialogs = await Dialog.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(offsetNum)
+      .limit(limitNum);
+
+    const total = await Dialog.countDocuments(query);
+    const hasMore = offsetNum + limitNum < total;
+
+    res.json({
+      items: dialogs,
+      total,
+      offset: offsetNum,
+      hasMore,
+    });
+  } catch (error: any) {
+    console.error('Помилка отримання списку діалогів:', error);
+    res.status(500).json({ message: 'Не вдалося отримати список діалогів' });
   }
-
-  const total = filteredDialogs.length;
-  const items = filteredDialogs.slice(offsetNum, offsetNum + limitNum);
-  const hasMore = offsetNum + limitNum < total;
-
-  res.json({
-    items,
-    total,
-    offset: offsetNum,
-    hasMore,
-  });
 };
